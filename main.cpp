@@ -4,57 +4,41 @@
 #include <random>
 #include <chrono>
 
+sf::RenderWindow window;
 int janela_width = 800;
 int janela_height = 800;
 int colunasTab = 4;
 int linhasTab = 4;
+
 enum class Formato
-    {
-        QUADRADO,
-        TRIANGULO,
-        CIRCULO
-    };
-    enum class Cor
-    {
-        VERMELHO,
-        AZUL,
-        AMARELO
-    };
+{
+    QUADRADO,
+    TRIANGULO,
+    CIRCULO
+};
 
 //---------------------------------------------------------------------------------
 class Peca
 {
-
 private:
     int x, y, dim, space;
     Formato shape;
-    Cor color;
 
 public:
+
+    Peca() : x(0), y(0), dim(0), space(0), shape(formaRandom())
+    {
+        // Você pode inicializar com valores padrão ou deixar vazio se não precisar de lógica aqui
+        // Para uma Peca "vazia", talvez definir um shape específico ou uma cor nula.
+    }
+
     Peca(int x, int y)
     {
         this->x = x;
         this->y = y;
         this->shape = formaRandom();
-        this->color = associaCor(shape);
         this->dim = 100;
         this->space = 50;
-    }
-
-    Cor associaCor(Formato shape)
-    {
-        if (shape == Formato::QUADRADO)
-        {
-            return Cor::VERMELHO;
-        }
-        else if (shape == Formato::TRIANGULO)
-        {
-            return Cor::AMARELO;
-        }
-        else if (shape == Formato::CIRCULO)
-        {
-            return Cor::AZUL;
-        }
     }
 
     Formato formaRandom()
@@ -71,22 +55,31 @@ public:
         return formato;
     }
 
-    Formato getForma(){
+    Formato getForma()
+    {
         return this->shape;
     }
 
-    int getX(){
+    int getX()
+    {
         return this->x;
     }
-    int getY(){
+    int getY()
+    {
         return this->y;
     }
 
-    int getDim(){
+    int getDim()
+    {
         return this->dim;
     }
-    int getSpace(){
+    int getSpace()
+    {
         return this->space;
+    }
+    Formato getShape()
+    {
+        return this->shape;
     }
 };
 
@@ -108,36 +101,74 @@ public:
         dist_width = (janela_width) / coluna;
         tam = linha * coluna;
         game = sf::VertexArray(sf::Lines, tam * 2);
+        matrizPecas();
     }
 
-    std::vector<std::vector<Peca>> criarMatrizDePecas()
-    {
-        std::vector<std::vector<Peca>> matrizPeca;
-        matrizPeca.resize(linha);
-        for (int i = 0; i < linha; ++i)
+
+    void desenhaMatriz(){
+
+        for (int i = 0; i < linhasTab; i++)
         {
-            matrizPeca[i].resize(coluna);
-            
-            for (int j = 0; j < coluna; ++j)
+            for (int j = 0; j < colunasTab; j++)
             {
-                matrizPeca[i][j] = Peca(i, j);
-
+                desenhaPeca(matrizPeca[j][i]);
             }
         }
-        return matrizPeca;
     }
 
-    void renderizaFiguras(){
-        for(int i = 0; i <linhasTab; i++){
-            for(int j = 0; j<colunasTab; j++){
-                if(matrizPeca[i][j].getForma() == Formato::CIRCULO){
-                    sf::CircleShape circulo(matrizPeca[i][j].getDim());
-                    circulo.setFillColor(sf::Color::Blue);
-                    circulo.setPosition(i*matrizPeca[i][j].getSpace(), j*matrizPeca[i][j].getSpace());
-                }
+
+    void matrizPecas()
+    {
+        matrizPeca.resize(this->linha);
+        for (int i = 0; i < linhasTab; i++)
+        {
+            matrizPeca[i].resize(this->coluna);
+            for (int j = 0; j < colunasTab; j++)
+            {
+                matrizPeca[i][j] = Peca(j, i);
             }
         }
-        
+    }
+
+    void desenhaPeca(Peca p)
+    {
+
+        int valX = ((janela_width / colunasTab) / 2) - (p.getDim() / 2);
+        int valY = ((janela_height / linhasTab) / 2) - (p.getDim() / 2);
+
+        int posX = valX + (p.getX() * (janela_width / colunasTab));
+        int posY = valY + (p.getY() * (janela_height / linhasTab));
+
+        if (p.getShape() == Formato::QUADRADO)
+        {
+            sf::RectangleShape retangulo(sf::Vector2f(p.getDim(), p.getDim()));
+            retangulo.setPosition(posX, posY);
+            retangulo.setFillColor(sf::Color::Red);
+            window.draw(retangulo);
+        }
+        else if (p.getShape() == Formato::CIRCULO)
+        {
+            sf::CircleShape circulo(p.getDim() / 2);
+            circulo.setFillColor(sf::Color::Blue);
+            circulo.setPosition(posX, posY);
+            circulo.setPointCount(100); // Mais pontos para um círculo mais suave (padrão é 30)
+            window.draw(circulo);
+        }
+        else if (p.getShape() == Formato::TRIANGULO)
+        {
+            // 1. Criar o objeto sf::ConvexShape e definir o número de pontos
+            sf::ConvexShape triangulo;
+            triangulo.setPointCount(3); // Um triângulo tem 3 pontos
+            // 2. Definir as coordenadas de cada ponto
+            // Os pontos são definidos em relação à origem local da forma (0,0),
+            // antes que setPosition() seja aplicado.
+            triangulo.setPoint(0, sf::Vector2f(50.f, 0.f));    // Ponto superior
+            triangulo.setPoint(1, sf::Vector2f(100.f, 100.f)); // Ponto inferior direito
+            triangulo.setPoint(2, sf::Vector2f(0.f, 100.f));   // Ponto inferior esquerdo
+            triangulo.setFillColor(sf::Color::Yellow);
+            triangulo.setPosition(posX, posY);
+            window.draw(triangulo);
+        }
     }
 
     sf::VertexArray criaGrade()
@@ -165,26 +196,29 @@ public:
         }
         return game;
     }
-
-
-
 };
 
 //---------------------------------------------------------------------------------
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(janela_width, janela_height), "Candy Crush");
-    Game Game;
-
+    window.create(sf::VideoMode(janela_width, janela_height), "Candy Crush");
+    Game game;
+    Peca p1(0, 1); // coluna, linha
     while (window.isOpen())
     {
         sf::Event event;
         while (window.pollEvent(event))
+        {
             if (event.type == sf::Event::Closed)
+            {
                 window.close();
+            }
+        }
 
         window.clear();
-        window.draw(Game.criaGrade());
+        window.draw(game.criaGrade());
+        //game.desenhaPeca(p1);
+        game.desenhaMatriz();
         window.display();
     }
     return 0;
