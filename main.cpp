@@ -25,7 +25,6 @@ private:
     Formato shape;
 
 public:
-
     Peca() : x(0), y(0), dim(0), space(0), shape(formaRandom())
     {
         // Você pode inicializar com valores padrão ou deixar vazio se não precisar de lógica aqui
@@ -60,6 +59,11 @@ public:
         return this->shape;
     }
 
+    void setForma()
+    {
+        this->shape = formaRandom();
+    }
+
     int getX()
     {
         return this->x;
@@ -76,10 +80,6 @@ public:
     int getSpace()
     {
         return this->space;
-    }
-    Formato getShape()
-    {
-        return this->shape;
     }
 };
 
@@ -101,12 +101,11 @@ public:
         dist_width = (janela_width) / coluna;
         tam = linha * coluna;
         game = sf::VertexArray(sf::Lines, tam * 2);
-        matrizPecas();
+        matrizMonta();
     }
 
-
-    void desenhaMatriz(){
-
+    void desenhaMatriz()
+    {
         for (int i = 0; i < linhasTab; i++)
         {
             for (int j = 0; j < colunasTab; j++)
@@ -116,8 +115,98 @@ public:
         }
     }
 
+    bool match(Peca p)
+    {
+        int currentY = p.getY(); // Linha da peça atual
+        int currentX = p.getX(); // Coluna da peça atual
+        Formato currentShape = p.getForma();
 
-    void matrizPecas()
+        // -- RETO --
+
+        // Reto para baixo
+        if (currentY + 2 < linhasTab && // Verifica se Peca(Y+2, X) está dentro dos limites da linha
+            matrizPeca[currentY + 1][currentX].getForma() == currentShape &&
+            matrizPeca[currentY + 2][currentX].getForma() == currentShape)
+        {
+            return true;
+        }
+
+        // Reto para cima
+        if (currentY - 2 >= 0 && // Verifica se Peca(Y-2, X) está dentro dos limites da linha
+            matrizPeca[currentY - 1][currentX].getForma() == currentShape &&
+            matrizPeca[currentY - 2][currentX].getForma() == currentShape)
+        {
+            return true;
+        }
+
+        // Reto para a direita
+        if (currentX + 2 < colunasTab && // Verifica se Peca(Y, X+2) está dentro dos limites da coluna
+            matrizPeca[currentY][currentX + 1].getForma() == currentShape &&
+            matrizPeca[currentY][currentX + 2].getForma() == currentShape)
+        {
+            return true;
+        }
+
+        // Reto para a esquerda
+        if (currentX - 2 >= 0 && // Verifica se Peca(Y, X-2) está dentro dos limites da coluna
+            matrizPeca[currentY][currentX - 1].getForma() == currentShape &&
+            matrizPeca[currentY][currentX - 2].getForma() == currentShape)
+        {
+            return true;
+        }
+
+        // -- DIAGONAIS --
+
+        // Diagonal direita-baixo
+        if (currentY + 2 < linhasTab && currentX + 2 < colunasTab &&
+            matrizPeca[currentY + 1][currentX + 1].getForma() == currentShape &&
+            matrizPeca[currentY + 2][currentX + 2].getForma() == currentShape)
+        {
+            return true;
+        }
+
+        // Diagonal direita-cima
+        if (currentY - 2 >= 0 && currentX + 2 < colunasTab &&
+            matrizPeca[currentY - 1][currentX + 1].getForma() == currentShape &&
+            matrizPeca[currentY - 2][currentX + 2].getForma() == currentShape)
+        {
+            return true;
+        }
+
+        // Diagonal esquerda-baixo
+        if (currentY + 2 < linhasTab && currentX - 2 >= 0 &&
+            matrizPeca[currentY + 1][currentX - 1].getForma() == currentShape &&
+            matrizPeca[currentY + 2][currentX - 2].getForma() == currentShape)
+        {
+            return true;
+        }
+
+        // Diagonal esquerda-cima
+        if (currentY - 2 >= 0 && currentX - 2 >= 0 &&
+            matrizPeca[currentY - 1][currentX - 1].getForma() == currentShape &&
+            matrizPeca[currentY - 2][currentX - 2].getForma() == currentShape)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    void checaMatch()
+    {
+        for (int i = 0; i < linhasTab; i++)
+        {
+            for (int j = 0; j < colunasTab; j++)
+            {
+                if (match(matrizPeca[j][i]))
+                {
+                    matrizPeca[j][i].setForma();
+                }
+            }
+        }
+    }
+
+    void matrizMonta()
     {
         matrizPeca.resize(this->linha);
         for (int i = 0; i < linhasTab; i++)
@@ -139,14 +228,14 @@ public:
         int posX = valX + (p.getX() * (janela_width / colunasTab));
         int posY = valY + (p.getY() * (janela_height / linhasTab));
 
-        if (p.getShape() == Formato::QUADRADO)
+        if (p.getForma() == Formato::QUADRADO)
         {
             sf::RectangleShape retangulo(sf::Vector2f(p.getDim(), p.getDim()));
             retangulo.setPosition(posX, posY);
             retangulo.setFillColor(sf::Color::Red);
             window.draw(retangulo);
         }
-        else if (p.getShape() == Formato::CIRCULO)
+        else if (p.getForma() == Formato::CIRCULO)
         {
             sf::CircleShape circulo(p.getDim() / 2);
             circulo.setFillColor(sf::Color::Blue);
@@ -154,7 +243,7 @@ public:
             circulo.setPointCount(100); // Mais pontos para um círculo mais suave (padrão é 30)
             window.draw(circulo);
         }
-        else if (p.getShape() == Formato::TRIANGULO)
+        else if (p.getForma() == Formato::TRIANGULO)
         {
             // 1. Criar o objeto sf::ConvexShape e definir o número de pontos
             sf::ConvexShape triangulo;
@@ -217,8 +306,9 @@ int main()
 
         window.clear();
         window.draw(game.criaGrade());
-        //game.desenhaPeca(p1);
+        // game.desenhaPeca(p1);
         game.desenhaMatriz();
+        game.checaMatch();
         window.display();
     }
     return 0;
