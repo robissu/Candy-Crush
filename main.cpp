@@ -442,7 +442,12 @@ public:
             selecaoY = 3;
         }
 
-        matrizPeca[selecaoY][selecaoX].setSelecao(true);
+        if (matrizPeca[selecaoY][selecaoX].getSelecao() == false)
+        {
+            matrizPeca[selecaoY][selecaoX].setSelecao(true);
+        }
+        else
+            matrizPeca[selecaoY][selecaoX].setSelecao(false);
     }
 
     void destacaSelecao()
