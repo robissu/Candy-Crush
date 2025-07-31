@@ -23,9 +23,10 @@ class Peca
 private:
     int x, y, dim, space;
     Formato shape;
+    bool selecao;
 
 public:
-    Peca() : x(0), y(0), dim(0), space(0), shape(formaRandom())
+    Peca() : x(0), y(0), dim(0), space(0), shape(formaRandom()), selecao(false)
     {
         // Você pode inicializar com valores padrão ou deixar vazio se não precisar de lógica aqui
         // Para uma Peca "vazia", talvez definir um shape específico ou uma cor nula.
@@ -38,6 +39,7 @@ public:
         this->shape = formaRandom();
         this->dim = 100;
         this->space = 50;
+        this->selecao = false;
     }
 
     Formato formaRandom()
@@ -59,6 +61,16 @@ public:
         return this->shape;
     }
 
+    void setSelecao(bool selecao)
+    {
+        this->selecao = selecao;
+    }
+
+    bool getSelecao()
+    {
+        return this->selecao;
+    }
+
     void setForma()
     {
         this->shape = formaRandom();
@@ -68,9 +80,20 @@ public:
     {
         return this->x;
     }
+
     int getY()
     {
         return this->y;
+    }
+
+    void setX(int x)
+    {
+        this->x = x;
+    }
+
+    void setY(int y)
+    {
+        this->y = y;
     }
 
     int getDim()
@@ -88,7 +111,7 @@ public:
 class Game
 {
 private:
-    int linha, coluna, dist_width, dist_height, tam;
+    int linha, coluna, dist_width, dist_height, tam, selecaoX, selecaoY;
     sf::VertexArray game;
     std::vector<std::vector<Peca>> matrizPeca;
 
@@ -97,10 +120,12 @@ public:
     {
         this->linha = linhasTab;
         this->coluna = colunasTab;
-        dist_height = (janela_height) / linha;
-        dist_width = (janela_width) / coluna;
-        tam = linha * coluna;
-        game = sf::VertexArray(sf::Lines, tam * 2);
+        this->dist_height = (janela_height) / linha;
+        this->dist_width = (janela_width) / coluna;
+        this->tam = linha * coluna;
+        this->game = sf::VertexArray(sf::Lines, tam * 2);
+        this->selecaoX = -1;
+        this->selecaoY = -1;
         matrizMonta();
     }
 
@@ -232,13 +257,28 @@ public:
         {
             sf::RectangleShape retangulo(sf::Vector2f(p.getDim(), p.getDim()));
             retangulo.setPosition(posX, posY);
-            retangulo.setFillColor(sf::Color::Red);
+            if (p.getSelecao() == false)
+            {
+                retangulo.setFillColor(sf::Color::Red);
+            }
+            else
+            {
+                retangulo.setFillColor(sf::Color::White);
+            }
             window.draw(retangulo);
         }
         else if (p.getForma() == Formato::CIRCULO)
         {
             sf::CircleShape circulo(p.getDim() / 2);
-            circulo.setFillColor(sf::Color::Blue);
+            if (p.getSelecao() == false)
+            {
+                circulo.setFillColor(sf::Color::Blue);
+            }
+            else
+            {
+                circulo.setFillColor(sf::Color::White);
+            }
+
             circulo.setPosition(posX, posY);
             circulo.setPointCount(100); // Mais pontos para um círculo mais suave (padrão é 30)
             window.draw(circulo);
@@ -254,7 +294,15 @@ public:
             triangulo.setPoint(0, sf::Vector2f(50.f, 0.f));    // Ponto superior
             triangulo.setPoint(1, sf::Vector2f(100.f, 100.f)); // Ponto inferior direito
             triangulo.setPoint(2, sf::Vector2f(0.f, 100.f));   // Ponto inferior esquerdo
-            triangulo.setFillColor(sf::Color::Yellow);
+            if (p.getSelecao() == false)
+            {
+                triangulo.setFillColor(sf::Color::Yellow);
+            }
+            else
+            {
+                triangulo.setFillColor(sf::Color::White);
+            }
+
             triangulo.setPosition(posX, posY);
             window.draw(triangulo);
         }
@@ -285,6 +333,123 @@ public:
         }
         return game;
     }
+
+    void swap(Peca &p1, Peca &p2)
+    {
+        int original_p1_x = p1.getX();
+        int original_p1_y = p1.getY();
+        int original_p2_x = p2.getX();
+        int original_p2_y = p2.getY();
+
+        std::swap(p1, p2);
+
+        p1.setX(original_p1_x);
+        p1.setY(original_p1_y);
+
+        p2.setX(original_p2_x);
+        p2.setY(original_p2_y);
+
+        p1.setSelecao(false);
+        p2.setSelecao(false);
+    }
+
+    void trocaPecas()
+    {
+        for (int i = 0; i < linhasTab; i++)
+        {
+            for (int j = 0; j < colunasTab; j++)
+            {
+                if (j + 1 < colunasTab && matrizPeca[j][i].getSelecao() == true && matrizPeca[j + 1][i].getSelecao() == true)
+                {
+                    // direita
+                    swap(matrizPeca[j][i], matrizPeca[j + 1][i]);
+                }
+                else if (j - 1 >= 0 && matrizPeca[j][i].getSelecao() == true && matrizPeca[j - 1][i].getSelecao() == true)
+                {
+                    // esquerda
+                    swap(matrizPeca[j][i], matrizPeca[j - 1][i]);
+                }
+                else if (i - 1 >= 0 && matrizPeca[j][i].getSelecao() == true && matrizPeca[j][i - 1].getSelecao() == true)
+                {
+                    // cima
+                    swap(matrizPeca[j][i], matrizPeca[j][i - 1]);
+                }
+                else if (i + 1 < linhasTab && matrizPeca[j][i].getSelecao() == true && matrizPeca[j][i + 1].getSelecao() == true)
+                {
+                    // baixo
+                    swap(matrizPeca[j][i], matrizPeca[j][i + 1]);
+                }
+                else if (j + 1 < colunasTab && i + 1 < linhasTab && matrizPeca[j][i].getSelecao() == true && matrizPeca[j + 1][i + 1].getSelecao() == true)
+                {
+                    // diagonal dir baixa
+                    swap(matrizPeca[j][i], matrizPeca[j + 1][i + 1]);
+                }
+                else if (j + 1 < colunasTab && i - 1 >= 0 && matrizPeca[j][i].getSelecao() == true && matrizPeca[j + 1][i - 1].getSelecao() == true)
+                {
+                    // diagonal dir cima
+                    swap(matrizPeca[j][i], matrizPeca[j + 1][i - 1]);
+                }
+                else if (j - 1 >= 0 && i + 1 < linhasTab && matrizPeca[j][i].getSelecao() == true && matrizPeca[j - 1][i + 1].getSelecao() == true)
+                {
+                    // diagonal esq baixa
+                    swap(matrizPeca[j][i], matrizPeca[j - 1][i + 1]);
+                }
+                else if (i - 1 >= 0 && j - 1 >= 0 && matrizPeca[j][i].getSelecao() == true && matrizPeca[j - 1][i - 1].getSelecao() == true)
+                {
+                    // diagonal esq cima
+                    swap(matrizPeca[j][i], matrizPeca[j - 1][i - 1]);
+                }
+            }
+        }
+    }
+
+    void checaClique(sf::Event event)
+    {
+
+        // checar coluna
+        if (event.mouseButton.x < (janela_width / colunasTab))
+        {
+            selecaoX = 0;
+        }
+        else if (event.mouseButton.x < (janela_width / colunasTab) * 2)
+        {
+            selecaoX = 1;
+        }
+        else if (event.mouseButton.x < (janela_width / colunasTab) * 3)
+        {
+            selecaoX = 2;
+        }
+        else if (event.mouseButton.x < (janela_width / colunasTab) * 4)
+        {
+            selecaoX = 3;
+        }
+
+        // checar linha
+        if (event.mouseButton.y < (janela_height / linhasTab))
+        {
+            selecaoY = 0;
+        }
+        else if (event.mouseButton.y < (janela_height / linhasTab) * 2)
+        {
+            selecaoY = 1;
+        }
+        else if (event.mouseButton.y < (janela_height / linhasTab) * 3)
+        {
+            selecaoY = 2;
+        }
+        else if (event.mouseButton.y < (janela_height / linhasTab) * 4)
+        {
+            selecaoY = 3;
+        }
+
+        matrizPeca[selecaoY][selecaoX].setSelecao(true);
+    }
+
+    void destacaSelecao()
+    {
+        std::cout << "Y: " << selecaoY << " X: " << selecaoX << std::endl;
+        std::cout << "Esta selecionada? " << matrizPeca[selecaoY][selecaoX].getSelecao() << std::endl;
+    }
 };
 
 //---------------------------------------------------------------------------------
@@ -293,18 +458,32 @@ int main()
     window.create(sf::VideoMode(janela_width, janela_height), "Candy Crush");
     Game game;
     Peca p1(0, 1); // coluna, linha
+    static int cont = 0;
     while (window.isOpen())
     {
         sf::Event event;
         while (window.pollEvent(event))
         {
+
             if (event.type == sf::Event::Closed)
             {
                 window.close();
             }
+
+            if (event.type == sf::Event::MouseButtonPressed)
+            {
+                cont++;
+                game.checaClique(event);
+                game.destacaSelecao();
+            }
         }
 
         window.clear();
+        if (cont == 2)
+        {
+            game.trocaPecas();
+            cont = 0;
+        }
         window.draw(game.criaGrade());
         // game.desenhaPeca(p1);
         game.desenhaMatriz();
